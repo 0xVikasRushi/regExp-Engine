@@ -45,6 +45,7 @@ mod test {
         match first_state {
             Some(state) => {
                 assert_eq!(&s2, state);
+                assert_eq!(s2.accepting, true);
             }
             None => {
                 panic!("No state found in transition table");
