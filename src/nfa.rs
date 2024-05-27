@@ -1,55 +1,45 @@
-use std::collections::HashMap;
+use crate::state::State;
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct State {
-    pub accepting: bool,
-    pub transition_map: HashMap<String, Vec<State>>,
+pub const EPSILON: &str = "ε";
+
+pub struct NFA {
+    pub in_state: State,
+    pub out_state: State,
 }
+impl NFA {
+    pub fn new() -> NFA {
+        NFA {
+            in_state: State::new(false),
+            out_state: State::new(true),
+        }
+    }
+    pub fn test() -> bool {
+        false
+    }
 
-impl State {
-    pub fn new(is_accepting: bool) -> State {
-        State {
-            accepting: is_accepting,
-            transition_map: HashMap::new(),
+    pub fn char(symbol: &str) -> NFA {
+        let mut nfa = NFA::new();
+
+        nfa.in_state
+            .add_transition_for_symbol(symbol, nfa.out_state.clone());
+
+        return nfa;
+    }
+    pub fn concat_pair(mut first: NFA, mut second: NFA) -> NFA {
+        first.out_state.accepting = false;
+        second.out_state.accepting = true;
+
+        first
+            .out_state
+            .add_transition_for_symbol(EPSILON, second.in_state);
+
+        NFA {
+            in_state: first.in_state,
+            out_state: second.out_state,
         }
     }
 
-    pub fn add_transition_for_symbol(&mut self, symbol: &str, new_state: State) {
-        self.transition_map
-            .entry(symbol.to_string())
-            .or_insert_with(Vec::new)
-            .push(new_state);
-    }
-
-    pub fn get_transition_for_symbol(&self, symbol: &str) -> Vec<State> {
-        match self.transition_map.get(symbol) {
-            Some(states) => states.clone(),
-            None => Vec::new(),
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_add_and_get_transition() {
-        let mut s1 = State::new(false);
-        let s2 = State::new(true);
-
-        s1.add_transition_for_symbol("a", s2.clone());
-        let transition_table_for_a = &s1.get_transition_for_symbol("a");
-
-        let first_state = transition_table_for_a.get(0);
-        match first_state {
-            Some(state) => {
-                assert_eq!(&s2, state);
-                assert_eq!(s2.accepting, true);
-            }
-            None => {
-                panic!("No state found in transition table");
-            }
-        }
+    pub fn concat(mut first: NFA, array_of_nfa: Vec<NFA>) -> NFA {
+        NFA::new()
     }
 }
