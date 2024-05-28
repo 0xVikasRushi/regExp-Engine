@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub const EPSILON: &str = "ε";
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct State {
     pub accepting: bool,
@@ -31,7 +33,6 @@ impl State {
 
 #[cfg(test)]
 mod test {
-    use crate::nfa::EPSILON;
 
     use super::*;
 
@@ -56,10 +57,10 @@ mod test {
     }
 
     #[test]
-    fn test_mutiple_transitions() {
+    fn test_multiple_transitions() {
         let mut s1 = State::new(false);
         let mut s2 = State::new(false);
-        let mut s3 = State::new(true);
+        let s3 = State::new(true);
 
         s1.add_transition_for_symbol(EPSILON, s2.clone());
 
