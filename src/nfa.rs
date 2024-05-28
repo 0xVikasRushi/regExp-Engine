@@ -40,7 +40,7 @@ impl NFA {
         }
     }
 
-    pub fn concat(first: &mut NFA, array_of_nfa: &mut Vec[NFA]) -> NFA {
+    pub fn concat(first: &mut NFA, array_of_nfa: &mut [NFA]) -> NFA {
         let mut current_nfa = first;
 
         for nfa in array_of_nfa.iter_mut() {
