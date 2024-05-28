@@ -31,6 +31,8 @@ impl State {
 
 #[cfg(test)]
 mod test {
+    use crate::nfa::EPSILON;
+
     use super::*;
 
     #[test]
@@ -38,14 +40,51 @@ mod test {
         let mut s1 = State::new(false);
         let s2 = State::new(true);
 
-        s1.add_transition_for_symbol("a", s2.clone());
-        let transition_table_for_a = &s1.get_transition_for_symbol("a");
+        s1.add_transition_for_symbol(EPSILON, s2.clone());
+        let transition_table_for_a = &s1.get_transition_for_symbol(EPSILON);
 
         let first_state = transition_table_for_a.get(0);
         match first_state {
             Some(state) => {
                 assert_eq!(&s2, state);
                 assert_eq!(s2.accepting, true);
+            }
+            None => {
+                panic!("No state found in transition table");
+            }
+        }
+    }
+
+    #[test]
+    fn test_mutiple_transitions() {
+        let mut s1 = State::new(false);
+        let mut s2 = State::new(false);
+        let mut s3 = State::new(true);
+
+        s1.add_transition_for_symbol(EPSILON, s2.clone());
+
+        let transition_table_for_a = s1.get_transition_for_symbol(EPSILON);
+        assert_eq!(transition_table_for_a.len(), 1);
+
+        let first_state = transition_table_for_a.get(0);
+        match first_state {
+            Some(state) => {
+                assert_eq!(state.accepting, false);
+            }
+            None => {
+                panic!("No state found in transition table");
+            }
+        }
+        s2.add_transition_for_symbol(EPSILON, s3.clone());
+
+        let transition_table_for_b = &s2.get_transition_for_symbol(EPSILON);
+
+        assert_eq!(transition_table_for_b.len(), 1);
+
+        let second_state = transition_table_for_b.get(0);
+        match second_state {
+            Some(state) => {
+                assert_eq!(state.accepting, true);
             }
             None => {
                 panic!("No state found in transition table");
