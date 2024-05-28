@@ -40,14 +40,14 @@ impl NFA {
         }
     }
 
-    pub fn concat(first: &mut NFA, array_of_nfa: &mut Vec<NFA>) -> NFA {
-        let mut current_nfa = first.clone();
+    pub fn concat(first: &mut NFA, array_of_nfa: &mut Vec[NFA]) -> NFA {
+        let mut current_nfa = first;
 
-        for nfa in array_of_nfa.iter_mut() {
-            current_nfa = NFA::concat_pair(&mut current_nfa, nfa);
+        for nfa in array_of_nfa.iter() {
+            *current_nfa = NFA::concat_pair(current_nfa, nfa);
         }
 
-        current_nfa
+        current_nfa.clone()
     }
 }
 
