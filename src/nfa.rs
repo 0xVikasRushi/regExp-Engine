@@ -40,21 +40,21 @@ impl NFA {
         }
     }
 
-    pub fn concat(first: &mut NFA, array_of_nfa: &mut [NFA]) -> NFA {
-        let mut current_nfa = first;
+    pub fn concat(first: &NFA, array_of_nfa: &[NFA]) -> NFA {
+        let mut current_nfa = first.clone();
 
-        for nfa in array_of_nfa.iter_mut() {
-            *current_nfa = NFA::concat_pair(current_nfa, nfa);
+        for nfa in array_of_nfa.iter() {
+            current_nfa = NFA::concat_pair(&mut current_nfa, &mut nfa.clone());
         }
 
-        current_nfa.clone()
+        current_nfa
     }
 }
 
 #[cfg(test)]
 mod test {
+
     use super::*;
-    use crate::state::EPSILON;
 
     #[test]
     fn test_concat_pair() {
@@ -63,49 +63,61 @@ mod test {
 
         let combine_transition = NFA::concat_pair(&mut first, &mut second);
 
-        assert_eq!(first.in_state.borrow().accepting, false);
-        assert_eq!(first.out_state.borrow().accepting, false);
+        assert_eq!(first.in_state.borrow_mut().accepting, false);
+        assert_eq!(first.out_state.borrow_mut().accepting, false);
 
-        assert_eq!(second.in_state.borrow().accepting, false);
-        assert_eq!(second.out_state.borrow().accepting, true);
+        assert_eq!(second.in_state.borrow_mut().accepting, false);
+        assert_eq!(second.out_state.borrow_mut().accepting, true);
 
-        assert_eq!(combine_transition.in_state.borrow().accepting, false);
-        assert_eq!(combine_transition.out_state.borrow().accepting, true);
+        assert_eq!(combine_transition.in_state.borrow_mut().accepting, false);
+        assert_eq!(combine_transition.out_state.borrow_mut().accepting, true);
+
+        let first_transition = first.in_state.borrow().get_transition_for_symbol("a");
+
+        assert!(Rc::ptr_eq(&first_transition[0], &first.out_state));
+        assert_eq!(first_transition.len(), 1);
 
         let epsilon_transition = first.out_state.borrow().get_transition_for_symbol(EPSILON);
         assert_eq!(epsilon_transition.len(), 1);
 
-        let epsilon_transition_state = epsilon_transition.get(0).unwrap();
-        assert_eq!(
-            *epsilon_transition_state.borrow(),
-            *second.in_state.borrow()
-        );
+        let second_transition = second.in_state.borrow().get_transition_for_symbol("b");
+        assert_eq!(second_transition.len(), 1);
 
-        let b_transition = second.in_state.borrow().get_transition_for_symbol("b");
-        assert_eq!(b_transition.len(), 1);
-
-        let b_expected_out_state = b_transition.get(0).unwrap();
-        assert_eq!(*b_expected_out_state.borrow(), *second.out_state.borrow());
+        // ? checking ptr location because RC allows multiple ownership fk rust
+        assert!(Rc::ptr_eq(&second_transition[0], &second.out_state));
     }
-
     #[test]
     fn test_concat() {
         let mut first = NFA::char("a");
-        let mut second = NFA::char("b");
-        let mut third = NFA::char("c");
+        let second = NFA::char("b");
+        let third = NFA::char("c");
 
-        dbg!(first.clone());
-        let mut array_of_nfa = vec![second, third];
+        let mut array_of_nfa = vec![second.clone(), third.clone()];
 
         let final_nfa = NFA::concat(&mut first, &mut array_of_nfa);
 
         assert_eq!(final_nfa.in_state.borrow().accepting, false);
         assert_eq!(final_nfa.out_state.borrow().accepting, true);
 
-        assert_eq!(*final_nfa.in_state.borrow(), *first.in_state.borrow());
-        assert_eq!(
-            *final_nfa.out_state.borrow(),
-            *array_of_nfa.last().unwrap().out_state.borrow()
-        );
+        let first_transition = first.in_state.borrow().get_transition_for_symbol("a");
+        assert_eq!(first_transition.len(), 1);
+        assert!(Rc::ptr_eq(&first_transition[0], &first.out_state));
+
+        let epsilon_transition_first = first.out_state.borrow().get_transition_for_symbol(EPSILON);
+        assert_eq!(epsilon_transition_first.len(), 1);
+        assert!(Rc::ptr_eq(&epsilon_transition_first[0], &second.in_state));
+
+        let second_transition = second.in_state.borrow().get_transition_for_symbol("b");
+        assert_eq!(second_transition.len(), 1);
+        assert!(Rc::ptr_eq(&second_transition[0], &second.out_state));
+
+        let epsilon_transition_second =
+            second.out_state.borrow().get_transition_for_symbol(EPSILON);
+        assert_eq!(epsilon_transition_second.len(), 1);
+        assert!(Rc::ptr_eq(&epsilon_transition_second[0], &third.in_state));
+
+        let third_transition = third.in_state.borrow().get_transition_for_symbol("c");
+        assert_eq!(third_transition.len(), 1);
+        assert!(Rc::ptr_eq(&third_transition[0], &third.out_state));
     }
 }
