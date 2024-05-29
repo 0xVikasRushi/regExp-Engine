@@ -159,5 +159,12 @@ mod test {
 
     // ! TODO
     #[test]
-    fn test_or_pair() {}
+    fn test_or_pair() {
+        let mut first = NFA::char("a");
+        let mut second = NFA::char("b");
+        let final_nfa = NFA::or_pair(&mut first, &mut second);
+
+        assert_eq!(final_nfa.in_state.borrow().accepting, false);
+        assert_eq!(final_nfa.out_state.borrow().accepting, true);
+    }
 }
