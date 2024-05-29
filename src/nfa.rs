@@ -49,6 +49,42 @@ impl NFA {
 
         current_nfa
     }
+
+    pub fn or_pair(first: &mut NFA, second: &mut NFA) -> NFA {
+        let final_nfa = NFA::new();
+
+        final_nfa
+            .in_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, first.in_state.clone());
+
+        final_nfa
+            .in_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, second.in_state.clone());
+
+        first
+            .in_state
+            .borrow_mut()
+            .add_transition_for_symbol("A", first.out_state.clone());
+
+        second
+            .in_state
+            .borrow_mut()
+            .add_transition_for_symbol("B", second.out_state.clone());
+
+        first
+            .out_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, final_nfa.out_state.clone());
+
+        second
+            .out_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, final_nfa.out_state.clone());
+
+        final_nfa
+    }
 }
 
 #[cfg(test)]
@@ -120,4 +156,8 @@ mod test {
         assert_eq!(third_transition.len(), 1);
         assert!(Rc::ptr_eq(&third_transition[0], &third.out_state));
     }
+
+    // ! TODO
+    #[test]
+    fn test_or_pair() {}
 }
