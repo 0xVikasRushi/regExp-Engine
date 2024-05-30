@@ -64,16 +64,6 @@ impl NFA {
             .add_transition_for_symbol(EPSILON, second.in_state.clone());
 
         first
-            .in_state
-            .borrow_mut()
-            .add_transition_for_symbol("A", first.out_state.clone());
-
-        second
-            .in_state
-            .borrow_mut()
-            .add_transition_for_symbol("B", second.out_state.clone());
-
-        first
             .out_state
             .borrow_mut()
             .add_transition_for_symbol(EPSILON, final_nfa.out_state.clone());
