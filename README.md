@@ -27,6 +27,9 @@ why implementing own regex engine ?
 
 ### Implementing NFA State Machine
 
+<img width="898" alt="Screenshot 2024-05-31 at 14 05 42" src="https://github.com/0xVikasRushi/regExp-Engine/assets/143269404/e18e96fb-7d66-4296-8436-b502dbc09c55">
+
+
 #### Simple State Construction
 
 A `State` in finite automata has an accepting property and a set of states it can transition to with other states.
