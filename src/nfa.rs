@@ -109,6 +109,10 @@ impl NFA {
 mod test {
 
     use super::*;
+    use crate::state::{State, EPSILON};
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
 
     #[test]
     fn test_concat_pair() {
@@ -192,6 +196,30 @@ mod test {
 
         assert_eq!(final_nfa.in_state.borrow().accepting, false);
         assert_eq!(final_nfa.out_state.borrow().accepting, true);
+
+        
+        let epsilon_transit = final_nfa
+            .in_state
+            .borrow()
+            .get_transition_for_symbol(EPSILON);
+        assert_eq!(epsilon_transit.len(), 2);
+        assert!(Rc::ptr_eq(&epsilon_transit[0], &first.in_state));
+        assert!(Rc::ptr_eq(&epsilon_transit[1], &second.in_state));
+
+        let first_out_transit = first
+            .out_state
+            .borrow()
+            .get_transition_for_symbol(EPSILON);
+        assert_eq!(first_out_transit.len(), 1);
+        assert!(Rc::ptr_eq(&first_out_transit[0], &final_nfa.out_state));
+
+        let second_out_transit = second
+            .out_state
+            .borrow()
+            .get_transition_for_symbol(EPSILON);
+        assert_eq!(second_out_transit.len(), 1);
+        assert!(Rc::ptr_eq(&second_out_transit[0], &final_nfa.out_state));
+    
     }
 
     #[test]
