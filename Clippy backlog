@@ -1,0 +1,87 @@
+    Checking regExp-Engine v0.1.0 (/Users/yehorbalytskyi/regExp-Engine)
+warning: struct `NFA` is never constructed
+ --> src/nfa.rs:6:12
+  |
+6 | pub struct NFA {
+  |            ^^^
+  |
+  = note: `NFA` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+  = note: `#[warn(dead_code)]` on by default
+
+warning: associated functions `new`, `char`, `concat_pair`, `concat`, `or_pair`, and `rep` are never used
+  --> src/nfa.rs:12:12
+   |
+11 | impl NFA {
+   | -------- associated functions in this implementation
+12 |     pub fn new() -> NFA {
+   |            ^^^
+...
+19 |     pub fn char(symbol: &str) -> NFA {
+   |            ^^^^
+...
+28 |     pub fn concat_pair(first: &mut NFA, second: &mut NFA) -> NFA {
+   |            ^^^^^^^^^^^
+...
+43 |     pub fn concat(first: &NFA, array_of_nfa: &[NFA]) -> NFA {
+   |            ^^^^^^
+...
+53 |     pub fn or_pair(first: &mut NFA, second: &mut NFA) -> NFA {
+   |            ^^^^^^^
+...
+80 |     pub fn rep(first: &mut NFA) -> NFA {
+   |            ^^^
+
+warning: constant `EPSILON` is never used
+ --> src/state.rs:3:11
+  |
+3 | pub const EPSILON: &str = "ε";
+  |           ^^^^^^^
+
+warning: associated items `new`, `add_transition_for_symbol`, and `get_transition_for_symbol` are never used
+  --> src/state.rs:12:12
+   |
+11 | impl State {
+   | ---------- associated items in this implementation
+12 |     pub fn new(is_accepting: bool) -> State {
+   |            ^^^
+...
+19 |     pub fn add_transition_for_symbol(&mut self, symbol: &str, new_state: Rc<RefCell<State>>) {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+26 |     pub fn get_transition_for_symbol(&self, symbol: &str) -> Vec<Rc<RefCell<State>>> {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: name `NFA` contains a capitalized acronym
+ --> src/nfa.rs:6:12
+  |
+6 | pub struct NFA {
+  |            ^^^ help: consider making the acronym lowercase, except the initial letter: `Nfa`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#upper_case_acronyms
+  = note: `#[warn(clippy::upper_case_acronyms)]` on by default
+
+warning: unneeded `return` statement
+   --> src/nfa.rs:104:9
+    |
+104 |         return final_nfa;
+    |         ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+    = note: `#[warn(clippy::needless_return)]` on by default
+help: remove `return`
+    |
+104 -         return final_nfa;
+104 +         final_nfa
+    |
+
+warning: use of `or_insert_with` to construct default value
+  --> src/state.rs:22:14
+   |
+22 |             .or_insert_with(Vec::new)
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+   = note: `#[warn(clippy::unwrap_or_default)]` on by default
+
+warning: `regExp-Engine` (bin "regExp-Engine") generated 7 warnings (run `cargo clippy --fix --bin "regExp-Engine"` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s
