@@ -25,6 +25,12 @@ impl NFA {
         nfa
     }
 
+    pub fn add_epsilon_transition(&mut self) {
+        self.in_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, self.out_state.clone());
+    }
+
     pub fn test(&self, _string: &str) -> bool {
         self.in_state.borrow().test(_string)
     }
@@ -55,7 +61,7 @@ impl NFA {
     }
 
     pub fn or_pair(first: &mut NFA, second: &mut NFA) -> NFA {
-        let final_nfa = NFA::new();
+        let mut final_nfa = NFA::new();
 
         final_nfa
             .in_state
@@ -66,6 +72,9 @@ impl NFA {
             .in_state
             .borrow_mut()
             .add_transition_for_symbol(EPSILON, second.in_state.clone());
+
+        first.out_state.borrow_mut().accepting = false;
+        second.out_state.borrow_mut().accepting = false;
 
         first
             .out_state
@@ -82,14 +91,19 @@ impl NFA {
 
     // ! WE USE BINDING CONSIDER CHAR() TRANSITION WE WONT WORRY ABOUT IT LATER !!
     pub fn rep(first: &mut NFA) -> NFA {
-        first.out_state.borrow_mut().accepting = false;
-
         let final_nfa = NFA::new();
 
         final_nfa
             .in_state
             .borrow_mut()
             .add_transition_for_symbol(EPSILON, first.in_state.clone());
+
+        final_nfa
+            .in_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, final_nfa.out_state.clone());
+
+        first.out_state.borrow_mut().accepting = false;
 
         first
             .out_state
@@ -101,10 +115,6 @@ impl NFA {
             .borrow_mut()
             .add_transition_for_symbol(EPSILON, first.in_state.clone());
 
-        final_nfa
-            .in_state
-            .borrow_mut()
-            .add_transition_for_symbol(EPSILON, final_nfa.out_state.clone());
         return final_nfa;
     }
 }
@@ -114,8 +124,33 @@ mod test {
 
     use super::*;
     use crate::state::{State, EPSILON};
-    use std::cell::RefCell;
     use std::rc::Rc;
+
+    #[test]
+    fn test_char() {
+        let nfa = NFA::char("a");
+        assert_eq!(nfa.in_state.borrow_mut().accepting, false);
+        assert_eq!(nfa.out_state.borrow_mut().accepting, true);
+
+        let first_transition = nfa.in_state.borrow_mut().get_transition_for_symbol("a");
+
+        assert!(Rc::ptr_eq(&first_transition[0], &nfa.out_state));
+        assert_eq!(first_transition.len(), 1);
+    }
+
+    #[test]
+    fn test_add_epsilon_transition() {
+        let mut nfa = NFA::new();
+        nfa.add_epsilon_transition();
+
+        assert_eq!(nfa.in_state.borrow_mut().accepting, false);
+        assert_eq!(nfa.out_state.borrow_mut().accepting, true);
+
+        let first_transition = nfa.in_state.borrow_mut().get_transition_for_symbol(EPSILON);
+
+        assert!(Rc::ptr_eq(&first_transition[0], &nfa.out_state));
+        assert_eq!(first_transition.len(), 1);
+    }
 
     #[test]
     fn test_concat_pair() {
@@ -163,6 +198,15 @@ mod test {
         assert_eq!(final_nfa.in_state.borrow_mut().accepting, false);
         assert_eq!(final_nfa.out_state.borrow_mut().accepting, true);
 
+        assert_eq!(first.in_state.borrow_mut().accepting, false);
+        assert_eq!(first.out_state.borrow_mut().accepting, false);
+
+        assert_eq!(second.in_state.borrow_mut().accepting, false);
+        assert_eq!(second.out_state.borrow_mut().accepting, false);
+
+        assert_eq!(third.in_state.borrow_mut().accepting, false);
+        assert_eq!(third.out_state.borrow_mut().accepting, true);
+
         let first_transition = first.in_state.borrow_mut().get_transition_for_symbol("a");
         assert_eq!(first_transition.len(), 1);
         assert!(Rc::ptr_eq(&first_transition[0], &first.out_state));
@@ -200,6 +244,12 @@ mod test {
         assert_eq!(final_nfa.in_state.borrow().accepting, false);
         assert_eq!(final_nfa.out_state.borrow().accepting, true);
 
+        assert_eq!(first.in_state.borrow().accepting, false);
+        assert_eq!(first.out_state.borrow().accepting, false);
+
+        assert_eq!(second.in_state.borrow().accepting, false);
+        assert_eq!(second.out_state.borrow().accepting, false);
+
         let epsilon_transit = final_nfa
             .in_state
             .borrow()
@@ -222,20 +272,24 @@ mod test {
         let mut a_state_machine = NFA::char("a");
 
         let final_nfa = NFA::rep(&mut a_state_machine);
+
         assert_eq!(final_nfa.in_state.borrow_mut().accepting, false);
         assert_eq!(final_nfa.out_state.borrow_mut().accepting, true);
 
-        let first_transition = final_nfa
+        assert_eq!(a_state_machine.in_state.borrow_mut().accepting, false);
+        assert_eq!(a_state_machine.out_state.borrow_mut().accepting, false);
+
+        let first_transitions = final_nfa
             .in_state
             .borrow_mut()
             .get_transition_for_symbol(EPSILON);
 
-        assert_eq!(first_transition.len(), 2);
-        assert!(Rc::ptr_eq(&first_transition[0], &a_state_machine.in_state));
+        assert_eq!(first_transitions.len(), 2);
+        assert!(Rc::ptr_eq(&first_transitions[0], &a_state_machine.in_state));
 
         // ? final in_state -> final out_state with elision transition
         assert!(Rc::ptr_eq(
-            &first_transition[1],
+            &first_transitions[1],
             &final_nfa.out_state.clone()
         ));
 
