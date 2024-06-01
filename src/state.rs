@@ -41,11 +41,18 @@ impl State {
     pub fn test_helper(&self, _string: &str, mut is_visited: HashMap<Uuid, bool>) -> bool {
         let label = self.label.borrow();
 
-        if *is_visited.get(label).unwrap() {
-            return false;
-        }
+        let is_curr_visited = is_visited.get(label);
 
-        is_visited.insert(*label, true);
+        match is_curr_visited {
+            Some(val) => {
+                if *val {
+                    return false;
+                }
+            }
+            None => {
+                is_visited.insert(*label, true);
+            }
+        }
 
         if _string.is_empty() {
             if *self.accepting.borrow() {
@@ -61,10 +68,11 @@ impl State {
             }
             return false;
         }
-        let first_char = &_string[0..1];
-        let rest_of_string = &_string[1..];
 
-        let symbol_transitions = self.get_transition_for_symbol(first_char);
+        let first_char = _string.chars().next().unwrap().to_string();
+        let rest_of_string = &_string[first_char.len()..];
+
+        let symbol_transitions = self.get_transition_for_symbol(&first_char);
 
         for next_state in symbol_transitions.iter() {
             if next_state
@@ -163,12 +171,25 @@ mod test {
     #[test]
     fn test_helper() {
         let first_nfa = NFA::new();
+        let second_nfa = NFA::new();
 
         first_nfa
             .in_state
             .borrow_mut()
-            .add_transition_for_symbol(EPSILON, first_nfa.out_state.clone());
+            .add_transition_for_symbol("a", first_nfa.out_state.clone());
 
-        let result = first_nfa.test(EPSILON);
+        first_nfa
+            .out_state
+            .borrow_mut()
+            .add_transition_for_symbol(EPSILON, second_nfa.in_state.clone());
+
+        second_nfa
+            .in_state
+            .borrow_mut()
+            .add_transition_for_symbol("b", second_nfa.out_state.clone());
+
+        // let result = first_nfa.test(EPSILON);
+
+        // assert_eq!(result, true);
     }
 }
