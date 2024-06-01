@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use uuid::Uuid;
 
@@ -39,13 +39,13 @@ impl State {
     }
 
     pub fn test_helper(&self, _string: &str, mut is_visited: HashMap<Uuid, bool>) -> bool {
-        let label = self.label.borrow();
+        let label = &self.label;
 
         let is_curr_visited = is_visited.get(label);
 
         match is_curr_visited {
             Some(val) => {
-                if *val {
+                if *val == true {
                     return false;
                 }
             }
@@ -55,14 +55,14 @@ impl State {
         }
 
         if _string.is_empty() {
-            if *self.accepting.borrow() {
+            if self.accepting {
                 return true;
             }
 
-            let epsilon_transitions = self.get_transition_for_symbol(EPSILON);
+            let mut epsilon_transitions = self.get_transition_for_symbol(EPSILON);
 
-            for next_state in epsilon_transitions.iter() {
-                if next_state.borrow_mut().test_helper("", is_visited.clone()) {
+            for next_state in epsilon_transitions.iter_mut() {
+                if next_state.borrow().test_helper("", is_visited.clone()) {
                     return true;
                 }
             }
@@ -72,24 +72,21 @@ impl State {
         let first_char = _string.chars().next().unwrap().to_string();
         let rest_of_string = &_string[first_char.len()..];
 
-        let symbol_transitions = self.get_transition_for_symbol(&first_char);
+        let mut symbol_transitions = self.get_transition_for_symbol(&first_char);
 
-        for next_state in symbol_transitions.iter() {
+        for next_state in symbol_transitions.iter_mut() {
             if next_state
-                .borrow_mut()
+                .borrow()
                 .test_helper(rest_of_string, is_visited.clone())
             {
                 return true;
             }
         }
 
-        let eplision_transition_for_next_state = self.get_transition_for_symbol(EPSILON);
+        let mut eplision_transition_for_next_state = self.get_transition_for_symbol(EPSILON);
 
-        for next_state in eplision_transition_for_next_state.iter() {
-            if next_state
-                .borrow_mut()
-                .test_helper(_string, is_visited.clone())
-            {
+        for next_state in eplision_transition_for_next_state.iter_mut() {
+            if next_state.borrow().test_helper(_string, is_visited.clone()) {
                 return true;
             }
         }
@@ -186,24 +183,47 @@ mod test {
         assert_eq!(result_4, false);
         assert_eq!(result_5, false);
     }
+    #[test]
+    fn test_regex_rep() {
+        let mut first_nfa = NFA::char("a");
+
+        let final_nfa = NFA::rep(&mut first_nfa);
+
+        let result_1 = final_nfa.test("a");
+        let result_2 = final_nfa.test("aa");
+        let result_3 = final_nfa.test("aaa");
+        let result_4 = final_nfa.test("aaaa");
+        let result_5 = final_nfa.test("");
+        let result_6 = final_nfa.test(" ");
+
+        assert_eq!(result_1, true);
+        assert_eq!(result_2, true);
+        assert_eq!(result_3, true);
+        assert_eq!(result_4, true);
+        assert_eq!(result_5, true);
+        assert_eq!(result_6, false);
+    }
 
     #[test]
     // ! RegExp /xy*|z/
     fn test_regex_or_and_concat() {
-        let mut x_concat_y = NFA::concat_pair(&mut NFA::char("x"), &mut NFA::char("y"));
+        let mut x = NFA::char("x");
+        let y_star = NFA::rep(&mut NFA::char("y"));
+        let mut z = NFA::char("z");
 
-        let final_nfa = NFA::or_pair(&mut x_concat_y, &mut NFA::char("z"));
+        let final_nfa = NFA::or_pair(&mut NFA::concat(&mut x, &[y_star]), &mut z);
         let result_1 = final_nfa.test("x");
-        let result_2 = final_nfa.test("y");
-        let result_3 = final_nfa.test("xy");
-
-        let result_4 = final_nfa.test("xyz");
-        let result_5 = final_nfa.test("z");
+        let result_2 = final_nfa.test("xy");
+        let result_3 = final_nfa.test("xyy");
+        let result_4 = final_nfa.test("z");
+        let result_5 = final_nfa.test("a");
+        let result_6 = final_nfa.test("");
 
         assert_eq!(result_1, true);
-        assert_eq!(result_2, false);
+        assert_eq!(result_2, true);
         assert_eq!(result_3, true);
-        assert_eq!(result_4, false);
-        assert_eq!(result_5, true);
+        assert_eq!(result_4, true);
+        assert_eq!(result_5, false);
+        assert_eq!(result_6, false);
     }
 }
