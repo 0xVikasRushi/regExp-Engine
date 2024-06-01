@@ -25,6 +25,10 @@ impl NFA {
         nfa
     }
 
+    pub fn test(&self, _string: &str) -> bool {
+        self.in_state.borrow().test(_string)
+    }
+
     pub fn concat_pair(first: &mut NFA, second: &mut NFA) -> NFA {
         first.out_state.borrow_mut().accepting = false;
         second.out_state.borrow_mut().accepting = true;
@@ -113,7 +117,6 @@ mod test {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-
     #[test]
     fn test_concat_pair() {
         let mut first = NFA::char("a");
@@ -197,7 +200,6 @@ mod test {
         assert_eq!(final_nfa.in_state.borrow().accepting, false);
         assert_eq!(final_nfa.out_state.borrow().accepting, true);
 
-        
         let epsilon_transit = final_nfa
             .in_state
             .borrow()
@@ -206,20 +208,13 @@ mod test {
         assert!(Rc::ptr_eq(&epsilon_transit[0], &first.in_state));
         assert!(Rc::ptr_eq(&epsilon_transit[1], &second.in_state));
 
-        let first_out_transit = first
-            .out_state
-            .borrow()
-            .get_transition_for_symbol(EPSILON);
+        let first_out_transit = first.out_state.borrow().get_transition_for_symbol(EPSILON);
         assert_eq!(first_out_transit.len(), 1);
         assert!(Rc::ptr_eq(&first_out_transit[0], &final_nfa.out_state));
 
-        let second_out_transit = second
-            .out_state
-            .borrow()
-            .get_transition_for_symbol(EPSILON);
+        let second_out_transit = second.out_state.borrow().get_transition_for_symbol(EPSILON);
         assert_eq!(second_out_transit.len(), 1);
         assert!(Rc::ptr_eq(&second_out_transit[0], &final_nfa.out_state));
-    
     }
 
     #[test]
