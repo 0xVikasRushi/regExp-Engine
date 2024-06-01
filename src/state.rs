@@ -169,7 +169,7 @@ mod test {
     }
 
     #[test]
-    fn test_helper() {
+    fn test_regex_concat() {
         let first_nfa = NFA::char("a");
         let second_nfa = NFA::char("b");
         let final_nfa = NFA::concat(&first_nfa, &[second_nfa]);
@@ -185,5 +185,25 @@ mod test {
         assert_eq!(result_3, false);
         assert_eq!(result_4, false);
         assert_eq!(result_5, false);
+    }
+
+    #[test]
+    // ! RegExp /xy*|z/
+    fn test_regex_or_and_concat() {
+        let mut x_concat_y = NFA::concat_pair(&mut NFA::char("x"), &mut NFA::char("y"));
+
+        let final_nfa = NFA::or_pair(&mut x_concat_y, &mut NFA::char("z"));
+        let result_1 = final_nfa.test("x");
+        let result_2 = final_nfa.test("y");
+        let result_3 = final_nfa.test("xy");
+
+        let result_4 = final_nfa.test("xyz");
+        let result_5 = final_nfa.test("z");
+
+        assert_eq!(result_1, true);
+        assert_eq!(result_2, false);
+        assert_eq!(result_3, true);
+        assert_eq!(result_4, false);
+        assert_eq!(result_5, true);
     }
 }
