@@ -39,9 +39,9 @@ impl State {
     }
 
     pub fn test_helper(&self, _string: &str, mut is_visited: HashMap<Uuid, bool>) -> bool {
-        let label = &self.label;
+        let label = self.label;
 
-        let is_curr_visited = is_visited.get(label);
+        let is_curr_visited = is_visited.get(&label);
 
         match is_curr_visited {
             Some(val) => {
@@ -49,19 +49,19 @@ impl State {
                     return false;
                 }
             }
-            None => {
-                is_visited.insert(*label, true);
-            }
+            None => {}
         }
+
+        is_visited.insert(label, true);
 
         if _string.is_empty() {
             if self.accepting {
                 return true;
             }
 
-            let mut epsilon_transitions = self.get_transition_for_symbol(EPSILON);
+            let epsilon_transitions = self.get_transition_for_symbol(EPSILON);
 
-            for next_state in epsilon_transitions.iter_mut() {
+            for next_state in epsilon_transitions.iter() {
                 if next_state.borrow().test_helper("", is_visited.clone()) {
                     return true;
                 }
@@ -72,9 +72,9 @@ impl State {
         let first_char = _string.chars().next().unwrap().to_string();
         let rest_of_string = &_string[first_char.len()..];
 
-        let mut symbol_transitions = self.get_transition_for_symbol(&first_char);
+        let symbol_transitions = self.get_transition_for_symbol(&first_char);
 
-        for next_state in symbol_transitions.iter_mut() {
+        for next_state in symbol_transitions.iter() {
             if next_state
                 .borrow()
                 .test_helper(rest_of_string, is_visited.clone())
@@ -83,9 +83,9 @@ impl State {
             }
         }
 
-        let mut eplision_transition_for_next_state = self.get_transition_for_symbol(EPSILON);
+        let eplision_transition_for_next_state = self.get_transition_for_symbol(EPSILON);
 
-        for next_state in eplision_transition_for_next_state.iter_mut() {
+        for next_state in eplision_transition_for_next_state.iter() {
             if next_state.borrow().test_helper(_string, is_visited.clone()) {
                 return true;
             }
