@@ -170,26 +170,20 @@ mod test {
 
     #[test]
     fn test_helper() {
-        let first_nfa = NFA::new();
-        let second_nfa = NFA::new();
+        let first_nfa = NFA::char("a");
+        let second_nfa = NFA::char("b");
+        let final_nfa = NFA::concat(&first_nfa, &[second_nfa]);
 
-        first_nfa
-            .in_state
-            .borrow_mut()
-            .add_transition_for_symbol("a", first_nfa.out_state.clone());
+        let result_1 = final_nfa.test("ab");
+        let result_2 = final_nfa.test("ac");
+        let result_3 = final_nfa.test(EPSILON);
+        let result_4 = final_nfa.test(" ab");
+        let result_5 = final_nfa.test("ab ");
 
-        first_nfa
-            .out_state
-            .borrow_mut()
-            .add_transition_for_symbol(EPSILON, second_nfa.in_state.clone());
-
-        second_nfa
-            .in_state
-            .borrow_mut()
-            .add_transition_for_symbol("b", second_nfa.out_state.clone());
-
-        // let result = first_nfa.test(EPSILON);
-
-        // assert_eq!(result, true);
+        assert_eq!(result_1, true);
+        assert_eq!(result_2, false);
+        assert_eq!(result_3, false);
+        assert_eq!(result_4, false);
+        assert_eq!(result_5, false);
     }
 }
