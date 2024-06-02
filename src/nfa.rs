@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use crate::state::{State, EPSILON};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -118,7 +120,38 @@ impl NFA {
         return final_nfa;
     }
 
-    pub fn get_transition_table(&self) {}
+    pub fn get_transition_table(&self) -> i32 {
+        let mut stack: Vec<State> = Vec::new();
+        let mut is_visited: HashMap<Uuid, bool> = HashMap::new();
+
+        stack.push(self.in_state.borrow().clone());
+
+        let mut count = 0;
+
+        while let Some(curr_state) = stack.pop() {
+            let visit = is_visited.get(&curr_state.label);
+            if visit == Some(&true) {
+                continue;
+            }
+
+            count += 1;
+            is_visited.insert(curr_state.label, true);
+
+            let all_transitions = curr_state.get_all_transition_symbols();
+
+            for next_transition in all_transitions.iter() {
+                let next_states = curr_state.get_transition_for_symbol(next_transition);
+                for next_state in next_states {
+                    if is_visited.get(&next_state.borrow().label) != Some(&true) {
+                        let state = next_state.borrow().clone();
+                        stack.push(state);
+                    }
+                }
+            }
+        }
+
+        return count;
+    }
 }
 
 #[cfg(test)]
@@ -236,7 +269,6 @@ mod test {
         assert!(Rc::ptr_eq(&third_transition[0], &third.out_state));
     }
 
-    // ! TODO
     #[test]
     fn test_or_pair() {
         let mut first = NFA::char("a");
@@ -321,5 +353,17 @@ mod test {
 
         assert_eq!(fourth_transition.len(), 1);
         assert!(Rc::ptr_eq(&fourth_transition[0], &a_state_machine.in_state));
+    }
+
+    #[test]
+    fn test_get_transition_table() {
+        let mut nfa_1 = NFA::char("a");
+        let mut nfa_2 = NFA::char("b");
+
+        let or_machine_nfa = NFA::or_pair(&mut nfa_1, &mut nfa_2);
+
+        let sui = or_machine_nfa.get_transition_table();
+
+        dbg!(sui);
     }
 }

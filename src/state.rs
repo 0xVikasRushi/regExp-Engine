@@ -69,6 +69,24 @@ impl State {
 
         count
     }
+    // EPSILON
+    pub fn epslion_closure(&self) -> Vec<State> {
+        let mut epsilon_vector: Vec<State> = Vec::new();
+
+        epsilon_vector.push(self.clone());
+
+        let all_symbols = self.get_all_transition_symbols();
+
+        for symbol in all_symbols.iter() {
+            let states = self.get_transition_for_symbol(symbol);
+
+            for state in states.iter() {
+                let curr_state = state.borrow().clone();
+                epsilon_vector.push(curr_state);
+            }
+        }
+        return epsilon_vector;
+    }
 
     pub fn test(&self, _string: &str) -> bool {
         return self.test_helper(_string, HashMap::new());
@@ -260,5 +278,20 @@ mod test {
         assert_eq!(result_3, false);
         assert_eq!(result_4, false);
         assert_eq!(result_5, false);
+    }
+
+    #[test]
+
+    fn test_epslion_closure() {
+        let mut first_nfa = NFA::char("a");
+        let mut second_nfa = NFA::char("b");
+        let final_nfa = NFA::or_pair(&mut first_nfa, &mut second_nfa);
+
+        let epsilon_closure = final_nfa.in_state.borrow().epslion_closure();
+
+        assert_eq!(epsilon_closure.len(), 3);
+        assert_eq!(epsilon_closure[0].label, final_nfa.in_state.borrow().label);
+        assert_eq!(epsilon_closure[1].label, first_nfa.in_state.borrow().label);
+        assert_eq!(epsilon_closure[2].label, second_nfa.in_state.borrow().label);
     }
 }
