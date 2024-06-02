@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::state::{State, EPSILON};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -120,37 +120,45 @@ impl NFA {
         return final_nfa;
     }
 
-    pub fn get_transition_table(&self) -> i32 {
-        let mut stack: Vec<State> = Vec::new();
-        let mut is_visited: HashMap<Uuid, bool> = HashMap::new();
+    pub fn get_transition_table(&self) -> Vec<(Uuid, String, Vec<Uuid>)> {
+        let (count, no_of_states) = self.in_state.borrow().count_unique_transitions();
 
-        stack.push(self.in_state.borrow().clone());
+        // let mut answer: HashMap<&str, > = HashMap::new();
 
-        let mut count = 0;
+        let mut stack: Vec<Rc<RefCell<State>>> = Vec::new();
+        let mut is_visited: HashSet<Uuid> = HashSet::new();
+        let mut transition_table: Vec<(Uuid, String, Vec<Uuid>)> = Vec::new();
 
-        while let Some(curr_state) = stack.pop() {
-            let visit = is_visited.get(&curr_state.label);
-            if visit == Some(&true) {
+        stack.push(self.in_state.clone());
+
+        while let Some(curr_state_rc) = stack.pop() {
+            let curr_state = curr_state_rc.borrow();
+            if is_visited.contains(&curr_state.label) {
                 continue;
             }
 
-            count += 1;
-            is_visited.insert(curr_state.label, true);
+            is_visited.insert(curr_state.label);
 
-            let all_transitions = curr_state.get_all_transition_symbols();
+            for symbol in curr_state.get_all_transition_symbols() {
+                let next_states = curr_state.get_transition_for_symbol(&symbol);
+                let next_state_labels: Vec<Uuid> =
+                    next_states.iter().map(|s| s.borrow().label).collect();
 
-            for next_transition in all_transitions.iter() {
-                let next_states = curr_state.get_transition_for_symbol(next_transition);
+                transition_table.push((
+                    curr_state.label,
+                    symbol.clone(),
+                    next_state_labels.clone(),
+                ));
+
                 for next_state in next_states {
-                    if is_visited.get(&next_state.borrow().label) != Some(&true) {
-                        let state = next_state.borrow().clone();
-                        stack.push(state);
+                    if !is_visited.contains(&next_state.borrow().label) {
+                        stack.push(next_state.clone());
                     }
                 }
             }
         }
 
-        return count;
+        return transition_table;
     }
 }
 
@@ -158,7 +166,7 @@ impl NFA {
 mod test {
 
     use super::*;
-    use crate::state::{State, EPSILON};
+    use crate::state::EPSILON;
     use std::rc::Rc;
 
     #[test]
@@ -359,11 +367,37 @@ mod test {
     fn test_get_transition_table() {
         let mut nfa_1 = NFA::char("a");
         let mut nfa_2 = NFA::char("b");
-
         let or_machine_nfa = NFA::or_pair(&mut nfa_1, &mut nfa_2);
 
-        let sui = or_machine_nfa.get_transition_table();
+        let cnt = or_machine_nfa.in_state.borrow().count_unique_transitions();
 
-        dbg!(sui);
+        let transition_table = or_machine_nfa.get_transition_table();
+
+        assert_eq!(transition_table.len(), 5);
+
+        // Collect Uuid of states for easier assertion
+        let in_state = or_machine_nfa.in_state.borrow().label;
+        let out_state = or_machine_nfa.out_state.borrow().label;
+        let nfa1_in_state = nfa_1.in_state.borrow().label;
+        let nfa1_out_state = nfa_1.out_state.borrow().label;
+        let nfa2_in_state = nfa_2.in_state.borrow().label;
+        let nfa2_out_state = nfa_2.out_state.borrow().label;
+
+        // Expected transitions
+        let expected_transitions = vec![
+            (
+                in_state,
+                EPSILON.to_string(),
+                vec![nfa1_in_state, nfa2_in_state],
+            ),
+            (nfa1_in_state, "a".to_string(), vec![nfa1_out_state]),
+            (nfa1_out_state, EPSILON.to_string(), vec![out_state]),
+            (nfa2_in_state, "b".to_string(), vec![nfa2_out_state]),
+            (nfa2_out_state, EPSILON.to_string(), vec![out_state]),
+        ];
+
+        for expected_transition in expected_transitions {
+            assert!(transition_table.contains(&expected_transition));
+        }
     }
 }
