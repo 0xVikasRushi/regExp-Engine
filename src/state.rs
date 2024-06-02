@@ -1,4 +1,8 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 use uuid::Uuid;
 
@@ -40,10 +44,12 @@ impl State {
 
     // ? DFA Traversal
 
-    pub fn count(&self) -> u64 {
+    pub fn count_unique_transitions(&self) -> (u64, HashSet<String>) {
         let mut stack: Vec<Rc<RefCell<State>>> = Vec::new();
         let mut is_visited: HashMap<Uuid, bool> = HashMap::new();
         let mut count: u64 = 0;
+
+        let mut all_transition_symbols: HashSet<String> = HashSet::new();
 
         stack.push(Rc::new(RefCell::new(self.clone())));
 
@@ -54,11 +60,13 @@ impl State {
             }
 
             count += 1;
-            is_visited.insert(curr_state_ref.label, true);
+            is_visited.insert(curr_state_ref.label.clone(), true);
 
             let all_transition = curr_state_ref.get_all_transition_symbols();
-            for next_transition in all_transition.iter() {
-                let next_states = curr_state_ref.get_transition_for_symbol(next_transition);
+
+            for next_transition in all_transition {
+                all_transition_symbols.insert(next_transition.clone());
+                let next_states = curr_state_ref.get_transition_for_symbol(&next_transition);
                 for next_state in next_states {
                     if is_visited.get(&next_state.borrow().label) != Some(&true) {
                         stack.push(next_state.clone());
@@ -67,8 +75,9 @@ impl State {
             }
         }
 
-        count
+        return (count, all_transition_symbols);
     }
+
     // EPSILON
     pub fn epslion_closure(&self) -> Vec<State> {
         let mut epsilon_vector: Vec<State> = Vec::new();
@@ -159,20 +168,36 @@ mod test {
 
     use super::EPSILON;
     #[test]
-    fn test_count() {
+    fn test_count_unique_transitions() {
         let mut nfa_1 = NFA::char("a");
         let mut nfa_2 = NFA::char("b");
 
         let final_concat_nfa = NFA::concat_pair(&mut nfa_1, &mut nfa_2);
-        let concat_count = final_concat_nfa.in_state.borrow().count();
+        let res = final_concat_nfa
+            .in_state
+            .borrow()
+            .count_unique_transitions();
+
+        let concat_count = res.0;
         assert_eq!(concat_count, 4);
+
+        let map = res.1;
+        assert!(map.contains("a"));
+        assert!(map.contains("b"));
+        assert!(map.contains(EPSILON));
+        assert!(!map.contains("suii"));
 
         let mut nfa_3 = NFA::char("c");
         let mut nfa_4 = NFA::char("d");
 
         let or_nfa = NFA::or_pair(&mut nfa_3, &mut nfa_4);
-        let or_pair_count = or_nfa.in_state.borrow().count();
-        assert_eq!(or_pair_count, 6)
+        let or_pair_count = or_nfa.in_state.borrow().count_unique_transitions();
+
+        let map = or_pair_count.1;
+        assert_eq!(or_pair_count.0, 6);
+        assert!(map.contains("c"));
+        assert!(map.contains("d"));
+        assert!(map.contains(EPSILON));
     }
 
     #[test]
