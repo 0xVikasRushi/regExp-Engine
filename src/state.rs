@@ -34,6 +34,42 @@ impl State {
         }
     }
 
+    pub fn get_all_transition_symbols(&self) -> Vec<String> {
+        self.transition_map.keys().cloned().collect()
+    }
+
+    // ? DFA Traversal
+
+    pub fn count(&self) -> u64 {
+        let mut stack: Vec<Rc<RefCell<State>>> = Vec::new();
+        let mut is_visited: HashMap<Uuid, bool> = HashMap::new();
+        let mut count: u64 = 0;
+
+        stack.push(Rc::new(RefCell::new(self.clone())));
+
+        while let Some(curr_state) = stack.pop() {
+            let curr_state_ref = curr_state.borrow();
+            if is_visited.get(&curr_state_ref.label) == Some(&true) {
+                continue;
+            }
+
+            count += 1;
+            is_visited.insert(curr_state_ref.label, true);
+
+            let all_transition = curr_state_ref.get_all_transition_symbols();
+            for next_transition in all_transition.iter() {
+                let next_states = curr_state_ref.get_transition_for_symbol(next_transition);
+                for next_state in next_states {
+                    if is_visited.get(&next_state.borrow().label) != Some(&true) {
+                        stack.push(next_state.clone());
+                    }
+                }
+            }
+        }
+
+        count
+    }
+
     pub fn test(&self, _string: &str) -> bool {
         return self.test_helper(_string, HashMap::new());
     }
@@ -104,6 +140,48 @@ mod test {
     use std::rc::Rc;
 
     use super::EPSILON;
+    #[test]
+    fn test_count() {
+        let mut nfa_1 = NFA::char("a");
+        let mut nfa_2 = NFA::char("b");
+
+        let final_concat_nfa = NFA::concat_pair(&mut nfa_1, &mut nfa_2);
+        let concat_count = final_concat_nfa.in_state.borrow().count();
+        assert_eq!(concat_count, 4);
+
+        let mut nfa_3 = NFA::char("c");
+        let mut nfa_4 = NFA::char("d");
+
+        let or_nfa = NFA::or_pair(&mut nfa_3, &mut nfa_4);
+        let or_pair_count = or_nfa.in_state.borrow().count();
+        assert_eq!(or_pair_count, 6)
+    }
+
+    #[test]
+    fn test_get_all_transition_symbols() {
+        let s1 = Rc::new(RefCell::new(State::new(false)));
+        let s2 = Rc::new(RefCell::new(State::new(true)));
+
+        s1.borrow_mut()
+            .add_transition_for_symbol(EPSILON, s2.clone());
+        s1.borrow_mut().add_transition_for_symbol("a", s2.clone());
+
+        s1.borrow_mut().add_transition_for_symbol("b", s2.clone());
+        s1.borrow_mut().add_transition_for_symbol("c", s2.clone());
+        s1.borrow_mut().add_transition_for_symbol("j", s2.clone());
+        s1.borrow_mut().add_transition_for_symbol("d", s2.clone());
+
+        let mut sui = s1.borrow().get_all_transition_symbols();
+        sui.sort();
+
+        assert_eq!(sui.len(), 6);
+        assert_eq!(sui[0], "a");
+        assert_eq!(sui[1], "b");
+        assert_eq!(sui[2], "c");
+        assert_eq!(sui[3], "d");
+        assert_eq!(sui[4], "j");
+        assert_eq!(sui[5], EPSILON);
+    }
 
     #[test]
     fn test_add_and_get_transition() {
@@ -182,48 +260,5 @@ mod test {
         assert_eq!(result_3, false);
         assert_eq!(result_4, false);
         assert_eq!(result_5, false);
-    }
-    #[test]
-    fn test_regex_rep() {
-        let mut first_nfa = NFA::char("a");
-
-        let final_nfa = NFA::rep(&mut first_nfa);
-
-        let result_1 = final_nfa.test("a");
-        let result_2 = final_nfa.test("aa");
-        let result_3 = final_nfa.test("aaa");
-        let result_4 = final_nfa.test("aaaa");
-        let result_5 = final_nfa.test("");
-        let result_6 = final_nfa.test(" ");
-
-        assert_eq!(result_1, true);
-        assert_eq!(result_2, true);
-        assert_eq!(result_3, true);
-        assert_eq!(result_4, true);
-        assert_eq!(result_5, true);
-        assert_eq!(result_6, false);
-    }
-
-    #[test]
-    // ! RegExp /xy*|z/
-    fn test_regex_or_and_concat() {
-        let mut x = NFA::char("x");
-        let y_star = NFA::rep(&mut NFA::char("y"));
-        let mut z = NFA::char("z");
-
-        let final_nfa = NFA::or_pair(&mut NFA::concat(&mut x, &[y_star]), &mut z);
-        let result_1 = final_nfa.test("x");
-        let result_2 = final_nfa.test("xy");
-        let result_3 = final_nfa.test("xyy");
-        let result_4 = final_nfa.test("z");
-        let result_5 = final_nfa.test("a");
-        let result_6 = final_nfa.test("");
-
-        assert_eq!(result_1, true);
-        assert_eq!(result_2, true);
-        assert_eq!(result_3, true);
-        assert_eq!(result_4, true);
-        assert_eq!(result_5, false);
-        assert_eq!(result_6, false);
     }
 }

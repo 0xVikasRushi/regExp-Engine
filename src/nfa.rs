@@ -1,5 +1,6 @@
 use crate::state::{State, EPSILON};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -61,7 +62,7 @@ impl NFA {
     }
 
     pub fn or_pair(first: &mut NFA, second: &mut NFA) -> NFA {
-        let mut final_nfa = NFA::new();
+        let final_nfa = NFA::new();
 
         final_nfa
             .in_state
@@ -89,7 +90,6 @@ impl NFA {
         final_nfa
     }
 
-    // ! WE USE BINDING CONSIDER CHAR() TRANSITION WE WONT WORRY ABOUT IT LATER !!
     pub fn rep(first: &mut NFA) -> NFA {
         let final_nfa = NFA::new();
 
@@ -117,6 +117,8 @@ impl NFA {
 
         return final_nfa;
     }
+
+    pub fn get_transition_table(&self) {}
 }
 
 #[cfg(test)]
