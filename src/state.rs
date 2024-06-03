@@ -7,7 +7,7 @@ use std::{
 use uuid::Uuid;
 
 pub const EPSILON: &str = "ε";
-
+pub const EPSILON_STAR: &str = "ε*";
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct State {
     pub accepting: bool,
@@ -44,17 +44,25 @@ impl State {
 
     // ? DFA Traversal
 
-    pub fn count_unique_transitions(&self) -> (u64, HashSet<String>) {
+    pub fn count_unique_transitions(
+        &self,
+    ) -> (u64, HashSet<String>, HashSet<Uuid>, HashMap<Uuid, State>) {
         let mut stack: Vec<Rc<RefCell<State>>> = Vec::new();
         let mut is_visited: HashMap<Uuid, bool> = HashMap::new();
         let mut count: u64 = 0;
 
         let mut all_transition_symbols: HashSet<String> = HashSet::new();
+        let mut all_uuid: HashSet<Uuid> = HashSet::new();
+        let mut map: HashMap<Uuid, State> = HashMap::new();
 
         stack.push(Rc::new(RefCell::new(self.clone())));
 
         while let Some(curr_state) = stack.pop() {
             let curr_state_ref = curr_state.borrow();
+            let curr_label = curr_state_ref.label;
+            all_uuid.insert(curr_label);
+            map.insert(curr_label, curr_state_ref.clone());
+
             if is_visited.get(&curr_state_ref.label) == Some(&true) {
                 continue;
             }
@@ -63,7 +71,6 @@ impl State {
             is_visited.insert(curr_state_ref.label.clone(), true);
 
             let all_transition = curr_state_ref.get_all_transition_symbols();
-
             for next_transition in all_transition {
                 all_transition_symbols.insert(next_transition.clone());
                 let next_states = curr_state_ref.get_transition_for_symbol(&next_transition);
@@ -75,7 +82,7 @@ impl State {
             }
         }
 
-        return (count, all_transition_symbols);
+        return (count, all_transition_symbols, all_uuid, map);
     }
 
     // EPSILON
@@ -180,6 +187,8 @@ mod test {
 
         let concat_count = res.0;
         assert_eq!(concat_count, 4);
+
+        assert_eq!(res.2.len(), concat_count.try_into().unwrap());
 
         let map = res.1;
         assert!(map.contains("a"));

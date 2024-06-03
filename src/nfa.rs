@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use crate::state::{State, EPSILON};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
@@ -9,6 +9,29 @@ use std::rc::Rc;
 pub struct NFA {
     pub in_state: Rc<RefCell<State>>,
     pub out_state: Rc<RefCell<State>>,
+}
+
+pub struct CELL {
+    pub symbol: String,
+    pub transition: Vec<String>,
+}
+
+impl CELL {
+    pub fn new(_symbol: &str) -> CELL {
+        CELL {
+            symbol: _symbol.to_string(),
+            transition: Vec::new(),
+        }
+    }
+    pub fn new_epslion() -> CELL {
+        CELL {
+            symbol: EPSILON.to_string(),
+            transition: Vec::new(),
+        }
+    }
+    pub fn add_transition(&mut self, state_id: &str) {
+        self.transition.push(state_id.to_string());
+    }
 }
 
 impl NFA {
@@ -120,56 +143,60 @@ impl NFA {
         return final_nfa;
     }
 
-    fn print_transition_table_impl(transition_table: &[(Uuid, String, Vec<Uuid>)]) {
-        for (state, symbol, next_states) in transition_table {
-            let next_states_str = next_states
-                .iter()
-                .map(|uuid| uuid.to_string())
-                .collect::<Vec<String>>()
-                .join(", ");
-            println!(
-                "State: {}, Symbol: {}, Next States: [{}]",
-                state, symbol, next_states_str
-            );
+    pub fn print_transition_table(transition_map: &HashMap<Uuid, Vec<CELL>>) {
+        println!("{:<36} {:<10} {:<10}", "State", "Symbol", "Transitions");
+
+        for (state, cells) in transition_map {
+            let state_str = state.to_string();
+            for cell in cells {
+                let transitions_str = cell.transition.join(", ");
+                println!(
+                    "{:<36} {:<10} {:<10}",
+                    state_str, cell.symbol, transitions_str
+                );
+            }
         }
     }
 
-    pub fn get_transition_table(&self) -> Vec<(Uuid, String, Vec<Uuid>)> {
-        let mut transition_table: Vec<(Uuid, String, Vec<Uuid>)> = Vec::new();
+    pub fn get_transition_table(&self) -> HashMap<Uuid, Vec<CELL>> {
+        let mut transition_table: HashMap<Uuid, Vec<CELL>> = HashMap::new();
 
-        let mut stack: Vec<Rc<RefCell<State>>> = Vec::new();
-        let mut is_visited: HashSet<Uuid> = HashSet::new();
+        let (_no_of_node, all_unique_transition, all_unique_uuid, state_map) =
+            self.in_state.borrow().count_unique_transitions();
 
-        stack.push(self.in_state.clone());
-
-        while let Some(curr_state_rc) = stack.pop() {
-            let curr_state = curr_state_rc.borrow();
-
-            if is_visited.contains(&curr_state.label) {
-                continue;
+        for curr_id in all_unique_uuid.iter() {
+            let mut array_of_cell: Vec<CELL> = Vec::new();
+            for curr_str in all_unique_transition.iter() {
+                let new_cell = CELL::new(&curr_str);
+                array_of_cell.push(new_cell);
             }
 
-            is_visited.insert(curr_state.label);
+            transition_table.insert(*curr_id, array_of_cell);
+        }
 
-            for symbol in curr_state.get_all_transition_symbols() {
-                let next_states = curr_state.get_transition_for_symbol(&symbol);
-                let next_state_labels: Vec<Uuid> =
-                    next_states.iter().map(|s| s.borrow().label).collect();
+        for curr_id in all_unique_uuid.iter() {
+            if let Some(state_rc) = state_map.get(curr_id) {
+                let state = state_rc;
 
-                transition_table.push((
-                    curr_state.label,
-                    symbol.clone(),
-                    next_state_labels.clone(),
-                ));
-
-                for next_state in next_states {
-                    if !is_visited.contains(&next_state.borrow().label) {
-                        stack.push(next_state.clone());
+                for symbol in state.get_all_transition_symbols() {
+                    if let Some(cells) = transition_table.get_mut(curr_id) {
+                        for cell in cells.iter_mut() {
+                            if cell.symbol == symbol {
+                                let next_states = state.get_transition_for_symbol(&symbol);
+                                for next_state in next_states {
+                                    cell.add_transition(&next_state.borrow().label.to_string());
+                                }
+                            }
+                            if symbol == "ε" {
+                                cell.add_transition(&state.label.to_string());
+                            }
+                        }
                     }
                 }
             }
         }
-        NFA::print_transition_table_impl(&transition_table);
+
+        NFA::print_transition_table(&transition_table);
         return transition_table;
     }
 }
@@ -380,32 +407,7 @@ mod test {
         let mut nfa_1 = NFA::char("a");
         let mut nfa_2 = NFA::char("b");
         let or_machine_nfa = NFA::or_pair(&mut nfa_1, &mut nfa_2);
-
         let transition_table = or_machine_nfa.get_transition_table();
-
-        // assert_eq!(transition_table.len(), 5);
-
-        // let in_state = or_machine_nfa.in_state.borrow().label;
-        // let out_state = or_machine_nfa.out_state.borrow().label;
-        // let nfa1_in_state = nfa_1.in_state.borrow().label;
-        // let nfa1_out_state = nfa_1.out_state.borrow().label;
-        // let nfa2_in_state = nfa_2.in_state.borrow().label;
-        // let nfa2_out_state = nfa_2.out_state.borrow().label;
-
-        // let expected_transitions = vec![
-        //     (
-        //         in_state,
-        //         EPSILON.to_string(),
-        //         vec![nfa1_in_state, nfa2_in_state],
-        //     ),
-        //     (nfa1_in_state, "a".to_string(), vec![nfa1_out_state]),
-        //     (nfa1_out_state, EPSILON.to_string(), vec![out_state]),
-        //     (nfa2_in_state, "b".to_string(), vec![nfa2_out_state]),
-        //     (nfa2_out_state, EPSILON.to_string(), vec![out_state]),
-        // ];
-
-        // for expected_transition in expected_transitions {
-        //     assert!(transition_table.contains(&expected_transition));
-        // }
+        assert_eq!(transition_table.len(), 6);
     }
 }
