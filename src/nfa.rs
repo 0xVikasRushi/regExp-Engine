@@ -187,15 +187,21 @@ impl NFA {
                                     cell.add_transition(&next_state.borrow().label.to_string());
                                 }
                             }
-                            if symbol == "ε" {
-                                cell.add_transition(&state.label.to_string());
-                            }
                         }
                     }
                 }
             }
         }
 
+        for curr_id in all_unique_uuid.iter() {
+            if let Some(cells) = transition_table.get_mut(curr_id) {
+                for cell in cells.iter_mut() {
+                    if cell.symbol == EPSILON {
+                        cell.add_transition(&curr_id.to_string());
+                    }
+                }
+            }
+        }
         NFA::print_transition_table(&transition_table);
         return (transition_table, accepting_state_uuid);
     }
