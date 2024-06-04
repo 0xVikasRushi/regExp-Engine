@@ -26,3 +26,18 @@ impl DFA {
     }
     pub fn get_accepting_states() {}
 }
+
+#[cfg(test)]
+mod test {
+    use crate::nfa::NFA;
+
+    #[test]
+    fn test_get_nfa_transition_table() {
+        let mut first_nfa = NFA::char("a");
+        let mut second_nfa = NFA::char("b");
+
+        let final_nfa = NFA::or_pair(&mut first_nfa, &mut second_nfa);
+
+        let nfa_table = final_nfa.get_transition_table();
+    }
+}

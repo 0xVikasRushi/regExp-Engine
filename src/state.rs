@@ -46,7 +46,13 @@ impl State {
 
     pub fn count_unique_transitions(
         &self,
-    ) -> (u64, HashSet<String>, HashSet<Uuid>, HashMap<Uuid, State>) {
+    ) -> (
+        u64,
+        HashSet<String>,
+        HashSet<Uuid>,
+        HashMap<Uuid, State>,
+        Uuid,
+    ) {
         let mut stack: Vec<Rc<RefCell<State>>> = Vec::new();
         let mut is_visited: HashMap<Uuid, bool> = HashMap::new();
         let mut count: u64 = 0;
@@ -57,12 +63,17 @@ impl State {
 
         stack.push(Rc::new(RefCell::new(self.clone())));
 
+        let mut accepting_state_uuid: Uuid = self.label;
+
         while let Some(curr_state) = stack.pop() {
             let curr_state_ref = curr_state.borrow();
             let curr_label = curr_state_ref.label;
             all_uuid.insert(curr_label);
             map.insert(curr_label, curr_state_ref.clone());
 
+            if curr_state_ref.accepting {
+                accepting_state_uuid = curr_label;
+            }
             if is_visited.get(&curr_state_ref.label) == Some(&true) {
                 continue;
             }
@@ -82,7 +93,13 @@ impl State {
             }
         }
 
-        return (count, all_transition_symbols, all_uuid, map);
+        return (
+            count,
+            all_transition_symbols,
+            all_uuid,
+            map,
+            accepting_state_uuid,
+        );
     }
 
     // EPSILON

@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::state::{State, EPSILON};
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -158,10 +158,10 @@ impl NFA {
         }
     }
 
-    pub fn get_transition_table(&self) -> HashMap<Uuid, Vec<CELL>> {
+    pub fn get_transition_table(&self) -> (HashMap<Uuid, Vec<CELL>>, Uuid) {
         let mut transition_table: HashMap<Uuid, Vec<CELL>> = HashMap::new();
 
-        let (_no_of_node, all_unique_transition, all_unique_uuid, state_map) =
+        let (_no_of_node, all_unique_transition, all_unique_uuid, state_map, accepting_state_uuid) =
             self.in_state.borrow().count_unique_transitions();
 
         for curr_id in all_unique_uuid.iter() {
@@ -197,7 +197,7 @@ impl NFA {
         }
 
         NFA::print_transition_table(&transition_table);
-        return transition_table;
+        return (transition_table, accepting_state_uuid);
     }
 }
 
@@ -408,6 +408,7 @@ mod test {
         let mut nfa_2 = NFA::char("b");
         let or_machine_nfa = NFA::or_pair(&mut nfa_1, &mut nfa_2);
         let transition_table = or_machine_nfa.get_transition_table();
-        assert_eq!(transition_table.len(), 6);
+        dbg!("accepting state", transition_table.1);
+        assert_eq!(transition_table.0.len(), 6);
     }
 }
