@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use crate::state::{State, EPSILON};
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -11,6 +11,7 @@ pub struct NFA {
     pub out_state: Rc<RefCell<State>>,
 }
 
+#[derive(Clone, Debug)]
 pub struct CELL {
     pub symbol: String,
     pub transition: Vec<String>,
@@ -158,7 +159,7 @@ impl NFA {
         }
     }
 
-    pub fn get_transition_table(&self) -> (HashMap<Uuid, Vec<CELL>>, Uuid) {
+    pub fn get_transition_table(&self) -> (HashMap<Uuid, Vec<CELL>>, Uuid, Vec<CELL>) {
         let mut transition_table: HashMap<Uuid, Vec<CELL>> = HashMap::new();
 
         let (_no_of_node, all_unique_transition, all_unique_uuid, state_map, accepting_state_uuid) =
@@ -193,17 +194,21 @@ impl NFA {
             }
         }
 
+        let mut all_e_transitions: Vec<CELL> = Vec::new();
+
         for curr_id in all_unique_uuid.iter() {
             if let Some(cells) = transition_table.get_mut(curr_id) {
                 for cell in cells.iter_mut() {
                     if cell.symbol == EPSILON {
                         cell.add_transition(&curr_id.to_string());
+                        all_e_transitions.push(cell.clone());
                     }
                 }
             }
         }
+
         NFA::print_transition_table(&transition_table);
-        return (transition_table, accepting_state_uuid);
+        return (transition_table, accepting_state_uuid, all_e_transitions);
     }
 }
 
