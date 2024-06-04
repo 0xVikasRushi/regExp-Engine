@@ -53,16 +53,26 @@ impl DFA {
         nfa_table: HashMap<Uuid, Vec<CELL>>,
         accepting_state: Uuid,
         all_e_transitions: Vec<CELL>,
-    ) -> (HashMap<Uuid, Vec<CELL>>, Vec<Uuid>) {
-        let mut dfa_table: HashMap<Uuid, Vec<CELL>> = HashMap::new();
+    ) -> (HashMap<Vec<Uuid>, Vec<CELL>>, Vec<Uuid>) {
+        let mut dfa_table: HashMap<Vec<Uuid>, Vec<CELL>> = HashMap::new();
         let mut accepting_states: Vec<Uuid> = Vec::new();
 
         let (epsilon_transitions, unique_transitions) =
             DFA::get_epsilon_and_unique_transitions(&nfa_table);
 
-        for transitions in epsilon_transitions {
-            if transitions.len() >= 2 {}
+        let uuid_epsilon_transitions = convert_to_uuid(&epsilon_transitions);
+
+        for transition in uuid_epsilon_transitions {
+            if transition.len() >= 2 {
+                let mut cells: Vec<CELL> = Vec::new();
+                for symbol in unique_transitions.iter() {
+                    let new_cell = CELL::new(&symbol);
+                    cells.push(new_cell);
+                }
+                dfa_table.insert(transition, cells);
+            }
         }
+
         (dfa_table, accepting_states)
     }
 
@@ -70,6 +80,32 @@ impl DFA {
         return false;
     }
 
+    pub fn print_dfa_transition_table(dfa_table: &HashMap<Vec<Uuid>, Vec<CELL>>) {
+        println!("{:<36} {:<10} {:<10}", "State", "Symbol", "Transitions");
+        println!("{:-<60}", "-");
+
+        for (state, cells) in dfa_table {
+            let state_str = state
+                .iter()
+                .map(|uuid| uuid.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            for cell in cells {
+                let transitions_str = cell
+                    .transition
+                    .iter()
+                    .map(|uuid| uuid.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                println!(
+                    "{:<36} {:<10} {:<10}",
+                    state_str, cell.symbol, transitions_str
+                );
+            }
+        }
+    }
     pub fn get_accepting_states() {}
 }
 
@@ -86,5 +122,19 @@ mod test {
 
         let nfa_table = final_nfa.get_transition_table();
         let dfa_table = DFA::get_transition_table(nfa_table.0, nfa_table.1, nfa_table.2);
+        DFA::print_dfa_transition_table(&dfa_table.0);
+        // println!("Accepting States: {:?}", accepting_states);
     }
+}
+
+fn convert_to_uuid(input: &Vec<Vec<String>>) -> Vec<Vec<Uuid>> {
+    input
+        .into_iter()
+        .map(|inner_vec| {
+            inner_vec
+                .into_iter()
+                .map(|s| Uuid::parse_str(&s).expect("Failed to parse UUID"))
+                .collect()
+        })
+        .collect()
 }
