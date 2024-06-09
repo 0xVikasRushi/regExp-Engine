@@ -108,6 +108,17 @@ impl DFA {
     }
     pub fn get_accepting_states() {}
 }
+// WIP Function for dfa minimization which takes as an input dfa_table
+// and accepting state
+    pub fn dfa_min(
+dfa_table: HashMap<Vec<Uuid>, Vec<CELL>>,
+accepting_state: Vec<Uuid>
+) -> (HashMap<Vec<Uuid>, Vec<CELL>>) {
+        // ***
+    let dfa_table:
+    let accepting_state:
+    }
+
 
 #[cfg(test)]
 mod test {
