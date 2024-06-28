@@ -6,8 +6,6 @@ why implementing own regex engine ?
 
 > While open-source libraries exist for regex matching, the purpose here is just educational, focusing on the underlying of finite state machines.
 
-> **Note:** It is not recommended to use this project in production unless you want to trust a 21-year-old.
-
 ## Project Milestones
 
 1. Implementing NFA State Machine
@@ -21,8 +19,8 @@ why implementing own regex engine ?
 
 2. Converting NFA -> DFA Machine
    - NFA Acceptor
-   - Building DFA Table
-   - DFA Minimization
+   - Building DFA Table 
+   - DFA Minimization (Work in Progress)
    - RegExp Match
 
 ### Implementing NFA State Machine
