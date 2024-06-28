@@ -25,12 +25,12 @@ impl DFA {
 
     pub fn get_epsilon_and_unique_transitions(
         transition_map: &HashMap<Uuid, Vec<CELL>>,
-    ) -> (Vec<Vec<String>>, HashSet<String>) {
-        let mut epsilon_transitions: Vec<Vec<String>> = Vec::new();
+    ) -> (HashMap<Uuid, Vec<Uuid>>, HashSet<String>) {
+        let mut epsilon_transitions: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
         let mut unique_transitions: HashSet<String> = HashSet::new();
 
-        for (_, cells) in transition_map {
-            let mut epsilon_transition: Vec<String> = Vec::new();
+        for (state, cells) in transition_map {
+            let mut epsilon_transition: Vec<Uuid> = vec![*state];
 
             for cell in cells {
                 if cell.symbol == EPSILON {
@@ -40,9 +40,7 @@ impl DFA {
                 }
             }
 
-            if !epsilon_transition.is_empty() {
-                epsilon_transitions.push(epsilon_transition);
-            }
+            epsilon_transitions.insert(*state, epsilon_transition);
         }
 
         (epsilon_transitions, unique_transitions)
@@ -52,29 +50,74 @@ impl DFA {
     pub fn get_transition_table(
         nfa_table: HashMap<Uuid, Vec<CELL>>,
         accepting_state: Uuid,
-        all_e_transitions: Vec<CELL>,
-    ) -> (HashMap<Vec<Uuid>, Vec<CELL>>, Vec<Uuid>) {
+        _all_e_transitions: Vec<CELL>,
+    ) -> (HashMap<Vec<Uuid>, Vec<CELL>>, Vec<Vec<Uuid>>) {
         let mut dfa_table: HashMap<Vec<Uuid>, Vec<CELL>> = HashMap::new();
-        let mut accepting_states: Vec<Uuid> = Vec::new();
+        let mut accepting_states: Vec<Vec<Uuid>> = Vec::new();
+        let mut state_queue: Vec<Vec<Uuid>> = Vec::new();
+        let mut visited_states: HashSet<Vec<Uuid>> = HashSet::new();
 
         let (epsilon_transitions, unique_transitions) =
             DFA::get_epsilon_and_unique_transitions(&nfa_table);
 
-        let uuid_epsilon_transitions = convert_to_uuid(&epsilon_transitions);
+        let initial_state = epsilon_transitions
+            .get(&accepting_state)
+            .cloned()
+            .unwrap_or_default();
+        state_queue.push(initial_state.clone());
+        visited_states.insert(initial_state.clone());
 
-        for transition in uuid_epsilon_transitions {
-            if transition.len() >= 2 {
-                let mut cells: Vec<CELL> = Vec::new();
-                for symbol in unique_transitions.iter() {
-                    let new_cell = CELL::new(&symbol);
-                    cells.push(new_cell);
+        while let Some(current_state) = state_queue.pop() {
+            let mut state_transitions: HashMap<String, Vec<Uuid>> = HashMap::new();
+
+            for uuid in &current_state {
+                if let Some(cells) = nfa_table.get(uuid) {
+                    for cell in cells {
+                        if cell.symbol != EPSILON {
+                            state_transitions
+                                .entry(cell.symbol.clone())
+                                .or_insert_with(Vec::new)
+                                .extend(cell.transition.iter().cloned());
+                        }
+                    }
                 }
-                dfa_table.insert(transition, cells);
             }
+
+            let mut dfa_cells: Vec<CELL> = Vec::new();
+
+            for (symbol, mut transitions) in state_transitions {
+                let mut epsilon_closure: HashSet<Uuid> = HashSet::new();
+                for state in &transitions {
+                    if let Some(epsilon_states) = epsilon_transitions.get(state) {
+                        epsilon_closure.extend(epsilon_states.iter().cloned());
+                    }
+                }
+
+                let epsilon_closure_vec: Vec<Uuid> = epsilon_closure.into_iter().collect();
+
+                transitions.sort();
+                transitions.dedup();
+
+                let mut new_cell = CELL::new(&symbol);
+                new_cell.transition = epsilon_closure_vec.clone();
+                dfa_cells.push(new_cell);
+
+                if !visited_states.contains(&epsilon_closure_vec) {
+                    state_queue.push(epsilon_closure_vec.clone());
+                    visited_states.insert(epsilon_closure_vec.clone());
+                }
+
+                if epsilon_closure_vec.contains(&accepting_state) {
+                    accepting_states.push(current_state.clone());
+                }
+            }
+
+            dfa_table.insert(current_state.clone(), dfa_cells);
         }
 
         (dfa_table, accepting_states)
     }
+
 
     pub fn test(_string: &str) -> bool {
         return false;
@@ -106,9 +149,18 @@ impl DFA {
             }
         }
     }
-    pub fn get_accepting_states() {}
-}
 
+    pub fn get_accepting_states(
+        dfa_table: &HashMap<Vec<Uuid>, Vec<CELL>>,
+        accepting_state: Uuid,
+    ) -> Vec<Vec<Uuid>> {
+        dfa_table
+            .keys()
+            .filter(|state| state.contains(&accepting_state))
+            .cloned()
+            .collect()
+    }
+}
 #[cfg(test)]
 mod test {
     use crate::{dfa::DFA, nfa::NFA};
